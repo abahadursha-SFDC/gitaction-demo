@@ -1,0 +1,34 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+jobs:
+ deploy:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v2
+
+                 
+     - name: Install Salesforce CLI
+       run: |
+           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+           mkdir ~/sfdx
+           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+           echo "~/sfdx/bin" >> $GITHUB_PATH
+
+           
+     - name: Authenticate
+       run: |
+         echo "${JWT_SECRET_KEY}" > server.key
+         sfdx force:auth:jwt:grant --clientid ${{ secrets.CONSUMER_KEY }} --jwtkeyfile server.key --username ${{ secrets.DEPLOYMENT_USER_NAME}} --instanceurl https://test.salesforce.com --setdefaultusername
+       env:
+         JWT_SECRET_KEY: ${{ secrets.JWT_SERVER_KEY }}
+
+     - name: deploy
+       
+       #Deploy without Test Execution
+       run: sfdx force:source:deploy -p ./force-app
